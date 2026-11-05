@@ -1,0 +1,387 @@
+diff --git a/main/application.cc b/main/application.cc
+index 9dd16e1..94c266b 100644
+--- a/main/application.cc
++++ b/main/application.cc
+@@ -739,6 +739,8 @@ void Application::InitializeProtocol() {
+ }
+ 
+ void Application::ShowActivationCode(const std::string& code, const std::string& message) {
++    ESP_LOGI(TAG, "Codigo de activacion: %s", code.c_str());
++
+     struct digit_sound {
+         char digit;
+         const std::string_view& sound;
+diff --git a/main/boards/bread-compact-wifi/compact_wifi_board.cc b/main/boards/bread-compact-wifi/compact_wifi_board.cc
+index 28b8c56..d5d8cf7 100644
+--- a/main/boards/bread-compact-wifi/compact_wifi_board.cc
++++ b/main/boards/bread-compact-wifi/compact_wifi_board.cc
+@@ -1,19 +1,23 @@
+-#include "wifi_board.h"
+-#include "codecs/no_audio_codec.h"
+-#include "display/oled_display.h"
+-#include "system_reset.h"
+ #include "application.h"
++#include "assets/lang_config.h"
+ #include "button.h"
++#include "codecs/no_audio_codec.h"
+ #include "config.h"
+-#include "mcp_server.h"
++#include "display/oled_display.h"
+ #include "lamp_controller.h"
+ #include "led/single_led.h"
+-#include "assets/lang_config.h"
++#include "mcp_server.h"
++#include "system_reset.h"
++#include "wifi_board.h"
+ 
+-#include <esp_log.h>
+ #include <driver/i2c_master.h>
+ #include <esp_lcd_panel_ops.h>
+ #include <esp_lcd_panel_vendor.h>
++#include <esp_log.h>
++#include <esp_netif.h>
++
++#include <freertos/FreeRTOS.h>
++#include <freertos/task.h>
+ 
+ #ifdef SH1106
+ #include <esp_lcd_panel_sh1106.h>
+@@ -32,18 +36,37 @@ private:
+     Button volume_up_button_;
+     Button volume_down_button_;
+ 
++    void ApplyDnsOverride() {
++        esp_netif_t* netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
++        if (netif == nullptr) {
++            ESP_LOGW(TAG, "No se encontro WIFI_STA_DEF para configurar DNS");
++            return;
++        }
++
++        esp_netif_dns_info_t dns = {};
++        dns.ip.type = ESP_IPADDR_TYPE_V4;
++        if (esp_netif_str_to_ip4(WIFI_DNS_PRIMARY, &dns.ip.u_addr.ip4) == ESP_OK) {
++            ESP_ERROR_CHECK(esp_netif_set_dns_info(netif, ESP_NETIF_DNS_MAIN, &dns));
++        }
++        if (esp_netif_str_to_ip4(WIFI_DNS_SECONDARY, &dns.ip.u_addr.ip4) == ESP_OK) {
++            ESP_ERROR_CHECK(esp_netif_set_dns_info(netif, ESP_NETIF_DNS_BACKUP, &dns));
++        }
++        ESP_LOGI(TAG, "DNS forzado: %s / %s", WIFI_DNS_PRIMARY, WIFI_DNS_SECONDARY);
++    }
++
+     void InitializeDisplayI2c() {
+         i2c_master_bus_config_t bus_config = {
+             .i2c_port = (i2c_port_t)0,
+             .sda_io_num = DISPLAY_SDA_PIN,
+             .scl_io_num = DISPLAY_SCL_PIN,
+             .clk_source = I2C_CLK_SRC_DEFAULT,
+-            .glitch_ignore_cnt = 7,
++            .glitch_ignore_cnt = 0,
+             .intr_priority = 0,
+             .trans_queue_depth = 0,
+-            .flags = {
+-                .enable_internal_pullup = 1,
+-            },
++            .flags =
++                {
++                    .enable_internal_pullup = 0,
++                },
+         };
+         ESP_ERROR_CHECK(i2c_new_master_bus(&bus_config, &display_i2c_bus_));
+     }
+@@ -52,17 +75,19 @@ private:
+         // SSD1306 config
+         esp_lcd_panel_io_i2c_config_t io_config = {
+             .dev_addr = 0x3C,
+-            .scl_speed_hz = 400 * 1000,
++            .scl_speed_hz = 50 * 1000,
+             .control_phase_bytes = 1,
+             .dc_bit_offset = 6,
+             .lcd_cmd_bits = 8,
+             .lcd_param_bits = 8,
+             .on_color_trans_done = nullptr,
+             .user_ctx = nullptr,
+-            .flags = {
+-                .dc_low_on_data = 0,
+-                .disable_control_phase = 0,
+-            },
++            .flags =
++                {
++                    .dc_low_on_data = 0,
++                    .disable_control_phase = 0,
++                },
++            .transaction_timeout_ms = 1000,
+         };
+ 
+         ESP_ERROR_CHECK(esp_lcd_new_panel_io_i2c(display_i2c_bus_, &io_config, &panel_io_));
+@@ -85,19 +110,67 @@ private:
+         ESP_LOGI(TAG, "SSD1306 driver installed");
+ 
+         // Reset the display
+-        ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_));
+-        if (esp_lcd_panel_init(panel_) != ESP_OK) {
+-            ESP_LOGE(TAG, "Failed to initialize display");
++        esp_err_t err = esp_lcd_panel_reset(panel_);
++        if (err != ESP_OK) {
++            ESP_LOGE(TAG, "Failed to reset display: %s", esp_err_to_name(err));
++            display_ = new NoDisplay();
++            return;
++        }
++        err = esp_lcd_panel_init(panel_);
++        if (err != ESP_OK) {
++            ESP_LOGE(TAG, "Failed to initialize display: %s", esp_err_to_name(err));
++            display_ = new NoDisplay();
++            return;
++        }
++        err = esp_lcd_panel_invert_color(panel_, false);
++        if (err != ESP_OK) {
++            ESP_LOGE(TAG, "Failed to invert display color: %s", esp_err_to_name(err));
+             display_ = new NoDisplay();
+             return;
+         }
+-        ESP_ERROR_CHECK(esp_lcd_panel_invert_color(panel_, false));
+ 
+         // Set the display to on
+         ESP_LOGI(TAG, "Turning display on");
+-        ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel_, true));
++        err = esp_lcd_panel_disp_on_off(panel_, true);
++        if (err != ESP_OK) {
++            ESP_LOGE(TAG, "Failed to turn display on: %s", esp_err_to_name(err));
++            display_ = new NoDisplay();
++            return;
++        }
+ 
+-        display_ = new OledDisplay(panel_io_, panel_, DISPLAY_WIDTH, DISPLAY_HEIGHT, DISPLAY_MIRROR_X, DISPLAY_MIRROR_Y);
++        display_ = new OledDisplay(panel_io_, panel_, DISPLAY_WIDTH, DISPLAY_HEIGHT,
++                                   DISPLAY_MIRROR_X, DISPLAY_MIRROR_Y);
++    }
++
++    void ShowExpressionDemo() {
++        static bool running = false;
++        if (running) {
++            return;
++        }
++        running = true;
++        if (xTaskCreate(
++                [](void* arg) {
++                    auto* board = static_cast<CompactWifiBoard*>(arg);
++                    static constexpr const char* kExpressions[] = {
++                        "neutral", "happy",  "laughing",    "funny",     "sad",     "angry",
++                        "crying",  "loving", "embarrassed", "surprised", "shocked", "thinking",
++                        "winking", "cool",   "relaxed",     "delicious", "kissy",   "confident",
++                        "sleepy",  "silly",  "confused",
++                    };
++                    auto* display = board->GetDisplay();
++                    for (const char* emotion : kExpressions) {
++                        display->SetEmotion(emotion);
++                        display->ShowNotification(emotion, 600);
++                        vTaskDelay(pdMS_TO_TICKS(700));
++                    }
++                    display->SetEmotion("neutral");
++                    running = false;
++                    vTaskDelete(nullptr);
++                },
++                "expr_demo", 6144, this, 5, nullptr) != pdPASS) {
++            running = false;
++            ESP_LOGW(TAG, "No se pudo iniciar la demo de expresiones");
++        }
+     }
+ 
+     void InitializeButtons() {
+@@ -109,12 +182,9 @@ private:
+             }
+             app.ToggleChatState();
+         });
+-        touch_button_.OnPressDown([this]() {
+-            Application::GetInstance().StartListening();
+-        });
+-        touch_button_.OnPressUp([this]() {
+-            Application::GetInstance().StopListening();
+-        });
++        boot_button_.OnLongPress([this]() { ShowExpressionDemo(); });
++        touch_button_.OnPressDown([this]() { Application::GetInstance().StartListening(); });
++        touch_button_.OnPressUp([this]() { Application::GetInstance().StopListening(); });
+ 
+         volume_up_button_.OnClick([this]() {
+             auto codec = GetAudioCodec();
+@@ -148,41 +218,52 @@ private:
+     }
+ 
+     // 物联网初始化，逐步迁移到 MCP 协议
+-    void InitializeTools() {
+-        static LampController lamp(LAMP_GPIO);
+-    }
++    void InitializeTools() { static LampController lamp(LAMP_GPIO); }
+ 
+ public:
+-    CompactWifiBoard() :
+-        boot_button_(BOOT_BUTTON_GPIO),
+-        touch_button_(TOUCH_BUTTON_GPIO),
+-        volume_up_button_(VOLUME_UP_BUTTON_GPIO),
+-        volume_down_button_(VOLUME_DOWN_BUTTON_GPIO) {
++    CompactWifiBoard()
++        : boot_button_(BOOT_BUTTON_GPIO),
++          touch_button_(TOUCH_BUTTON_GPIO),
++          volume_up_button_(VOLUME_UP_BUTTON_GPIO),
++          volume_down_button_(VOLUME_DOWN_BUTTON_GPIO) {
+         InitializeDisplayI2c();
+         InitializeSsd1306Display();
+         InitializeButtons();
+         InitializeTools();
+     }
+ 
++    void SetNetworkEventCallback(NetworkEventCallback callback) override {
++        WifiBoard::SetNetworkEventCallback(
++            [this, callback = std::move(callback)](NetworkEvent event, const std::string& data) {
++                if (event == NetworkEvent::Connected) {
++                    ApplyDnsOverride();
++                }
++                if (callback) {
++                    callback(event, data);
++                }
++            });
++    }
++
+     virtual Led* GetLed() override {
+-        static SingleLed led(BUILTIN_LED_GPIO);
++        static NoLed led;
+         return &led;
+     }
+ 
+     virtual AudioCodec* GetAudioCodec() override {
+ #ifdef AUDIO_I2S_METHOD_SIMPLEX
+         static NoAudioCodecSimplex audio_codec(AUDIO_INPUT_SAMPLE_RATE, AUDIO_OUTPUT_SAMPLE_RATE,
+-            AUDIO_I2S_SPK_GPIO_BCLK, AUDIO_I2S_SPK_GPIO_LRCK, AUDIO_I2S_SPK_GPIO_DOUT, AUDIO_I2S_MIC_GPIO_SCK, AUDIO_I2S_MIC_GPIO_WS, AUDIO_I2S_MIC_GPIO_DIN);
++                                               AUDIO_I2S_SPK_GPIO_BCLK, AUDIO_I2S_SPK_GPIO_LRCK,
++                                               AUDIO_I2S_SPK_GPIO_DOUT, AUDIO_I2S_MIC_GPIO_SCK,
++                                               AUDIO_I2S_MIC_GPIO_WS, AUDIO_I2S_MIC_GPIO_DIN);
+ #else
+         static NoAudioCodecDuplex audio_codec(AUDIO_INPUT_SAMPLE_RATE, AUDIO_OUTPUT_SAMPLE_RATE,
+-            AUDIO_I2S_GPIO_BCLK, AUDIO_I2S_GPIO_WS, AUDIO_I2S_GPIO_DOUT, AUDIO_I2S_GPIO_DIN);
++                                              AUDIO_I2S_GPIO_BCLK, AUDIO_I2S_GPIO_WS,
++                                              AUDIO_I2S_GPIO_DOUT, AUDIO_I2S_GPIO_DIN);
+ #endif
+         return &audio_codec;
+     }
+ 
+-    virtual Display* GetDisplay() override {
+-        return display_;
+-    }
++    virtual Display* GetDisplay() override { return display_; }
+ };
+ 
+ DECLARE_BOARD(CompactWifiBoard);
+diff --git a/main/boards/bread-compact-wifi/config.h b/main/boards/bread-compact-wifi/config.h
+index c1910d4..f2b8bdb 100644
+--- a/main/boards/bread-compact-wifi/config.h
++++ b/main/boards/bread-compact-wifi/config.h
+@@ -11,11 +11,11 @@
+ 
+ #ifdef AUDIO_I2S_METHOD_SIMPLEX
+ 
+-#define AUDIO_I2S_MIC_GPIO_WS   GPIO_NUM_4
++#define AUDIO_I2S_MIC_GPIO_WS   GPIO_NUM_8
+ #define AUDIO_I2S_MIC_GPIO_SCK  GPIO_NUM_5
+ #define AUDIO_I2S_MIC_GPIO_DIN  GPIO_NUM_6
+ #define AUDIO_I2S_SPK_GPIO_DOUT GPIO_NUM_7
+-#define AUDIO_I2S_SPK_GPIO_BCLK GPIO_NUM_15
++#define AUDIO_I2S_SPK_GPIO_BCLK GPIO_NUM_9
+ #define AUDIO_I2S_SPK_GPIO_LRCK GPIO_NUM_16
+ 
+ #else
+@@ -30,12 +30,16 @@
+ 
+ #define BUILTIN_LED_GPIO        GPIO_NUM_48
+ #define BOOT_BUTTON_GPIO        GPIO_NUM_0
++
++// DNS público de respaldo: el router de esta red no responde consultas DNS
++#define WIFI_DNS_PRIMARY        "8.8.8.8"
++#define WIFI_DNS_SECONDARY      "1.1.1.1"
+ #define TOUCH_BUTTON_GPIO       GPIO_NUM_47
+ #define VOLUME_UP_BUTTON_GPIO   GPIO_NUM_40
+ #define VOLUME_DOWN_BUTTON_GPIO GPIO_NUM_39
+ 
+-#define DISPLAY_SDA_PIN GPIO_NUM_41
+-#define DISPLAY_SCL_PIN GPIO_NUM_42
++#define DISPLAY_SDA_PIN GPIO_NUM_4
++#define DISPLAY_SCL_PIN GPIO_NUM_15
+ #define DISPLAY_WIDTH   128
+ 
+ #if CONFIG_OLED_SSD1306_128X32
+diff --git a/main/display/oled_display.cc b/main/display/oled_display.cc
+index e066666..efb1471 100644
+--- a/main/display/oled_display.cc
++++ b/main/display/oled_display.cc
+@@ -5,6 +5,7 @@
+ #include "settings.h"
+ 
+ #include <algorithm>
++#include <cstring>
+ #include <string>
+ 
+ #include <esp_err.h>
+@@ -15,6 +16,26 @@
+ 
+ #define TAG "OledDisplay"
+ 
++struct EmotionAlias {
++    const char* name;
++    const char* target;
++};
++
++// Additional names the server or the user may use. They resolve to the
++// expressions already present in the Noto Emoji font, so no extra glyphs are
++// needed on the OLED build.
++static constexpr EmotionAlias kEmotionAliases[] = {
++    {"excited", "laughing"}, {"bored", "sleepy"},       {"scared", "shocked"},
++    {"afraid", "shocked"},   {"fear", "shocked"},       {"nervous", "confused"},
++    {"anxious", "confused"}, {"proud", "confident"},    {"shy", "embarrassed"},
++    {"love", "loving"},      {"heart", "loving"},       {"kiss", "kissy"},
++    {"lol", "laughing"},     {"smile", "happy"},        {"cry", "crying"},
++    {"mad", "angry"},        {"surprise", "surprised"}, {"think", "thinking"},
++    {"wink", "winking"},     {"chill", "relaxed"},      {"yummy", "delicious"},
++    {"tired", "sleepy"},     {"sleep", "sleepy"},       {"fun", "funny"},
++    {"robot", "robot_2"},
++};
++
+ LV_FONT_DECLARE(BUILTIN_TEXT_FONT);
+ LV_FONT_DECLARE(BUILTIN_ICON_FONT);
+ LV_FONT_DECLARE(font_material_symbols_30_1);
+@@ -412,12 +433,28 @@ void OledDisplay::SetupUI_128x32() {
+ 
+ bool OledDisplay::SetEmotion(const char* emotion) {
+     auto lvgl_theme = static_cast<LvglTheme*>(current_theme_);
+-    const char* utf8 = noto_emoji_get_utf8(emotion);
++    const char* resolved_emotion = emotion;
++    const char* utf8 = noto_emoji_get_utf8(resolved_emotion);
+     const lv_font_t* emotion_font = lvgl_theme->emoji_font()->font();
+     if (utf8 == nullptr) {
+-        utf8 = material_symbols_get_utf8(emotion);
++        utf8 = material_symbols_get_utf8(resolved_emotion);
+         emotion_font = lvgl_theme->large_icon_font()->font();
+     }
++    if (utf8 == nullptr && emotion != nullptr) {
++        for (const auto& alias : kEmotionAliases) {
++            if (std::strcmp(emotion, alias.name) != 0) {
++                continue;
++            }
++            resolved_emotion = alias.target;
++            utf8 = noto_emoji_get_utf8(resolved_emotion);
++            emotion_font = lvgl_theme->emoji_font()->font();
++            if (utf8 == nullptr) {
++                utf8 = material_symbols_get_utf8(resolved_emotion);
++                emotion_font = lvgl_theme->large_icon_font()->font();
++            }
++            break;
++        }
++    }
+     DisplayLockGuard lock(this);
+     if (emotion_label_ == nullptr) {
+         return false;
+@@ -429,6 +466,7 @@ bool OledDisplay::SetEmotion(const char* emotion) {
+     }
+     // Neither font has a glyph for this name, so what is shown is the neutral placeholder and
+     // not the emotion that was asked for.
++    ESP_LOGW(TAG, "Unknown emotion \"%s\", using neutral", emotion ? emotion : "(null)");
+     lv_obj_set_style_text_font(emotion_label_, lvgl_theme->emoji_font()->font(), 0);
+     lv_label_set_text(emotion_label_, NOTO_EMOJI_NEUTRAL);
+     return false;

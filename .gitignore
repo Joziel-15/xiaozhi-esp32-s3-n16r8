@@ -1,0 +1,10 @@
+.DS_Store
+build/
+managed_components/
+*.log
+!logs/*.log
+*.bin
+!firmware/*.bin
+*.elf
+*.map
+sdkconfig.old

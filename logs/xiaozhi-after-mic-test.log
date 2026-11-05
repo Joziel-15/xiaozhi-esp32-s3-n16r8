@@ -1,0 +1,219 @@
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x1 (POWERON),boot:0x28 (SPI_FAST_FLASH_BOOT)
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x4c4
+load:0x403c8700,len:0xcc8
+load:0x403cb700,len:0x2e9c
+entry 0x403c88f4
+I (33) octal_psram: vendor id    : 0x0d (AP)
+I (33) octal_psram: dev id       : 0x02 (generation 3)
+I (33) octal_psram: density      : 0x03 (64 Mbit)
+I (35) octal_psram: good-die     : 0x01 (Pass)
+I (39) octal_psram: Latency      : 0x01 (Fixed)
+I (44) octal_psram: VCC          : 0x01 (3V)
+I (48) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (52) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (57) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (62) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (67) octal_psram: DriveStrength: 0x00 (1/1)
+I (71) MSPI Timing: Enter psram timing tuning
+I (76) esp_psram: Found 8MB PSRAM device
+I (79) esp_psram: Speed: 80MHz
+I (82) cpu_start: Multicore app
+I (96) cpu_start: GPIO 44 and 43 are used as console UART I/O pins
+I (96) cpu_start: Pro cpu start user code
+I (96) cpu_start: cpu freq: 240000000 Hz
+I (98) app_init: Application information:
+I (101) app_init: Project name:     xiaozhi
+I (105) app_init: App version:      2.5.3
+I (109) app_init: Compile time:     Nov  3 2026 21:12:40
+I (114) app_init: ELF file SHA256:  6cc7e3201...
+I (118) app_init: ESP-IDF:          v6.0.3-707-gdac489c6718
+I (124) efuse_init: Min chip rev:     v0.0
+I (128) efuse_init: Max chip rev:     v0.99 
+I (132) efuse_init: Chip rev:         v0.2
+I (135) heap_init: Initializing. RAM available for dynamic allocation:
+I (142) heap_init: At 3FCA7900 len 00041E10 (263 KiB): RAM
+I (147) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (152) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (157) heap_init: At 600FE000 len 00001FD8 (7 KiB): RTCRAM
+I (163) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (169) spi_flash: detected chip: boya
+I (172) spi_flash: flash io: qio
+I (176) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (182) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (189) main_task: Started on CPU0
+I (209) esp_psram: Reserving pool of 100K of internal memory for DMA/internal allocations
+I (209) main_task: Calling app_main()
+I (219) Board: UUID=<UUID> SKU=bread-compact-wifi
+I (219) button: IoT Button Version: 4.2.2
+I (229) CompactWifiBoard: Install SSD1306 driver
+I (229) CompactWifiBoard: SSD1306 driver installed
+E (229) lcd_panel.io.i2c: panel_io_i2c_tx_buffer(197): i2c transaction failed
+E (239) lcd_panel.ssd1306: panel_ssd1306_init(151): io tx param SSD1306_CMD_SET_MULTIPLEX failed
+E (249) CompactWifiBoard: Failed to initialize display: ESP_ERR_INVALID_RESPONSE
+I (259) MCP: Add tool: self.lamp.get_state
+I (259) MCP: Add tool: self.lamp.turn_on
+I (259) MCP: Add tool: self.lamp.turn_off
+I (269) StateMachine: State: unknown -> starting
+W (269) Display: Role:system
+W (269) Display:      bread-compact-wifi/2.5.3
+I (279) NoAudioCodec: Simplex channels created
+I (279) AudioCodec: Audio codec started
+I (289) Application: After board/audio init
+I (289) SystemInfo: free sram: 249971 minimal sram: 148444
+I (299) MCP: Add tool: self.get_device_status
+I (299) MCP: Add tool: self.audio_speaker.set_volume
+I (299) MCP: Add tool: self.get_system_info [user]
+I (309) MCP: Add tool: self.reboot [user]
+I (309) MCP: Add tool: self.upgrade_firmware [user]
+I (319) MCP: Add tool: self.assets.set_download_url [user]
+I (319) WifiManager: Initializing...
+I (329) pp: pp rom version: e7ae62f
+I (329) net80211: net80211 rom version: e7ae62f
+I (339) wifi:wifi driver task: 3fcd4300, prio:23, stack:6656, core=0
+I (339) wifi:wifi firmware version: 003ef6c
+I (339) wifi:wifi certification version: v7.0
+I (349) wifi:config NVS flash: disabled
+I (349) wifi:config nano formatting: disabled
+I (349) wifi:Init data frame dynamic rx buffer num: 6
+I (359) wifi:Init dynamic rx mgmt buffer num: 5
+I (359) wifi:Init management short buffer num: 32
+I (369) wifi:Init dynamic tx buffer num: 32
+I (369) wifi:Init static tx FG buffer num: 2
+I (379) wifi:Init static rx buffer size: 1600
+I (379) wifi:Init static rx buffer num: 3
+I (379) wifi:Init dynamic rx buffer num: 6
+I (389) wifi_init: rx ba win: 3
+I (389) wifi_init: accept mbox: 6
+I (389) wifi_init: tcpip mbox: 16
+I (399) wifi_init: udp mbox: 6
+I (399) wifi_init: tcp mbox: 6
+I (399) wifi_init: tcp tx win: 5760
+I (409) wifi_init: tcp rx win: 5760
+I (409) wifi_init: tcp mss: 1440
+I (409) WifiManager: Initialized
+I (419) WifiBoard: Starting WiFi connection attempt
+I (419) WifiManager: Starting station
+I (419) WifiStation: Station DHCP hostname: Xiaozhi-XXXX
+I (429) phy_init: phy_version 712,87e8c20e,Apr 13 2026,18:51:10
+I (469) wifi:mode : sta (<MAC>)
+I (469) wifi:enable tsf
+I (469) WifiStation: Scanning 2 saved channels
+I (469) WifiBoard: WiFi scanning
+W (469) Display: ShowNotification: Escaneando Wi-Fi...
+I (709) WifiStation: Found AP: <SSID>, BSSID: <BSSID>, RSSI: -22, Channel: 6, Authmode: 3
+I (709) WifiBoard: WiFi connecting to <SSID>
+W (719) Display: ShowNotification: Conectar a <SSID>...
+W (719) wifi:Password length matches WPA2 standards, authmode threshold changes from OPEN to WPA2
+I (789) wifi:new:<6,0>, old:<1,0>, ap:<255,255>, sta:<6,0>, prof:1, snd_ch_cfg:0x0
+I (789) wifi:state: init -> auth (0xb0)
+I (789) wifi:state: auth -> assoc (0x0)
+I (799) wifi:state: assoc -> run (0x10)
+I (809) wifi:<ba-add>idx:0 (ifx:0, <BSSID>), tid:0, ssn:0, winSize:64
+I (849) wifi:connected with <SSID>, aid = 1, channel 6, BW20, bssid = <BSSID>
+I (849) wifi:security: WPA2-PSK, phy: bgn, rssi: -21, cipher(pairwise:0x3, group:0x3), pmf:0
+I (859) wifi:pm start, type: 1
+
+I (859) wifi:dp: 1, bi: 102400, li: 10, scale listen interval from 1024000 us to 1024000 us
+I (869) wifi:set rx beacon pti, rx_bcn_pti: 0, bcn_timeout: 25000, mt_pti: 0, mt_time: 10000
+I (909) wifi:AP's beacon interval = 102400 us, DTIM period = 1
+W (1729) Display: SetEmotion: neutral
+W (1739) Display: ShowNotification: neutral
+W (2439) Display: SetEmotion: happy
+W (2439) Display: ShowNotification: happy
+W (3139) Display: SetEmotion: laughing
+W (3139) Display: ShowNotification: laughing
+W (3839) Display: SetEmotion: funny
+W (3839) Display: ShowNotification: funny
+W (4539) Display: SetEmotion: sad
+W (4539) Display: ShowNotification: sad
+I (4979) esp_netif_handlers: sta ip: <IP>, mask: 255.255.255.0, gw: <GATEWAY>
+I (4979) WifiStation: Got IP: <IP>
+I (4979) WifiBoard: Connected to WiFi: <SSID>
+I (4979) CompactWifiBoard: DNS forzado: 8.8.8.8 / 1.1.1.1
+W (4989) Display: ShowNotification: Conectado a <SSID>
+I (4989) SsidManager: Updated channel for <SSID>: 11 -> 6
+I (4999) Application: Network connected
+I (4999) StateMachine: State: starting -> activating
+I (5009) Assets: The storage free size is 22272 KB
+I (5009) Assets: The assets map size is 576 KB (partition 8192 KB)
+I (5049) Assets: The checksum calculation time is 32 ms
+I (5049) MODEL_LOADER: Successfully load srmodels
+I (5049) Assets: Skipping UI assets: LVGL display is unavailable
+W (5049) Display: Role:system
+W (5059) Display:      
+W (5059) Display: SetEmotion: robot_2
+W (5059) Display: SetStatus: Verificando nueva versión...
+I (5069) Ota: Current version: 2.5.3
+W (5239) Display: SetEmotion: angry
+W (5239) Display: ShowNotification: angry
+I (5309) wifi:<ba-add>idx:1 (ifx:0, <BSSID>), tid:4, ssn:0, winSize:64
+W (5939) Display: SetEmotion: crying
+W (5939) Display: ShowNotification: crying
+W (6639) Display: SetEmotion: loving
+W (6639) Display: ShowNotification: loving
+I (7089) HttpClient: Established new connection to api.tenclass.net:443 protocol=https cost=2020
+W (7339) Display: SetEmotion: embarrassed
+W (7339) Display: ShowNotification: embarrassed
+I (7779) HttpClient: HTTP connection closed
+I (7789) Ota: Current is the latest version
+I (7789) Ota: Running partition: ota_0
+W (7789) Display: SetStatus: Conectando al servidor...
+I (7789) MQTT: Connecting to endpoint api.tenclass.net:8883
+I (7799) MQTT: Resolved MQTT host api.tenclass.net -> 47.76.65.170
+W (8039) Display: SetEmotion: surprised
+W (8039) Display: ShowNotification: surprised
+W (8739) Display: SetEmotion: shocked
+W (8739) Display: ShowNotification: shocked
+W (9439) Display: SetEmotion: thinking
+W (9439) Display: ShowNotification: thinking
+I (9609) MQTT: Connected to endpoint
+I (9609) Application: Activation done
+I (9609) SystemInfo: free sram: 191923 minimal sram: 88524
+I (9609) StateMachine: State: activating -> idle
+W (9619) Display: ShowNotification: Versión 2.5.3
+W (9619) Display: Role:system
+W (9619) Display:      
+I (9629) WifiStation: Setting WiFi power save level: LOW_POWER (MAX_MODEM)
+I (9629) wifi:Set ps type: 2, coexist: 0
+
+W (9639) Display: SetStatus: En espera
+W (9639) Display: SetEmotion: neutral
+I (9639) AfeAudioEngine: Model 0: wn9_hiesp
+I (9649) WakeWordCache: Allocated 64000 bytes in PSRAM
+I (9649) AFE_CONFIG: Set WakeNet Model: wn9_hiesp
+I (9659) AfeAudioEngine: Before AFE create: free=200967 min=88524 largest=98304
+MC Quantized wakenet9: wakeNet9_v1h24_Hi,ESP_3_0.63_0.635, tigger:v4, mode:0, p:0, (May 25 2026 15:51:00)
+I (9699) AFE: AFE Version: (1MIC_V251128)
+I (9699) AFE: Input PCM Config: total 1 channels(1 microphone, 0 playback), sample rate:16000
+I (9709) AFE: AFE Pipeline: [input] -> |VAD(WebRTC)| -> |WakeNet(wn9_hiesp,)| -> [output]
+I (9719) AFE: AFE Version: (1MIC_V251128)
+I (9719) AFE: Input PCM Config: total 1 channels(1 microphone, 0 playback), sample rate:16000
+I (9729) AFE: AFE Pipeline: [input] -> |VAD(WebRTC)| -> [output]
+I (9739) AfeAudioEngine: Initialized FD AFE, detector: WakeNet, NS: off, feed: 512, fetch: 512
+I (9749) AfeAudioEngine: After AFE create: free=180003 min=71160 largest=98304
+I (9759) AudioCodec: Set output enable to true
+I (9759) Application: Startup wake word hint: Di «Hi,ESP» para despertarme.
+I (9759) AudioService: Resampling audio from 16000 to 24000
+W (9759) Display: Role:assistant
+W (9769) Display:      Di «Hi,ESP» para despertarme.
+I (9759) AudioCodec: Set input enable to true
+W (10139) Display: SetEmotion: winking
+W (10139) Display: ShowNotification: winking
+W (10839) Display: SetEmotion: cool
+W (10839) Display: ShowNotification: cool
+W (11539) Display: SetEmotion: relaxed
+W (11539) Display: ShowNotification: relaxed
+W (12239) Display: SetEmotion: delicious
+W (12239) Display: ShowNotification: delicious
+W (12939) Display: SetEmotion: kissy
+W (12939) Display: ShowNotification: kissy
+W (13639) Display: SetEmotion: confident
+W (13639) Display: ShowNotification: confident
+W (14339) Display: SetEmotion: sleepy
+W (14339) Display: ShowNotification: sleepy
+W (15039) Display: SetEmotion: silly
+W (15039) Display: ShowNotification: silly
